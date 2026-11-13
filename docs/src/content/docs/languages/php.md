@@ -1,0 +1,162 @@
+---
+title: PHP
+description: Building PHP applications with Railpack
+---
+
+Railpack can automatically build and deploy PHP applications with FrankenPHP, a
+modern and efficient PHP application server.
+
+## Detection
+
+Your project will be detected as a PHP application if any of these conditions
+are met:
+
+- An `index.php` file exists in the root directory
+- A `composer.json` file exists in the root directory
+
+## Versions
+
+The PHP version is determined in the following order:
+
+- Read from the `composer.json` file
+- Defaults to `8.4`
+
+Only PHP 8.2 and above are supported.
+
+## Configuration
+
+Railpack will configure [FrankenPHP](https://frankenphp.dev/) for your
+application. For Laravel and Symfony applications, the document root is set to
+the `public` directory.
+
+### Config Variables
+
+| Variable                   | Description                                         | Example            |
+| -------------------------- | --------------------------------------------------- | ------------------ |
+| `RAILPACK_PHP_ROOT_DIR`    | Override the document root                          | `/app/public`      |
+| `RAILPACK_PHP_EXTENSIONS`  | Additional PHP extensions to install                | `gd,imagick,redis` |
+| `RAILPACK_SKIP_MIGRATIONS` | Disable DB migrations on start (default: false)     | `true`             |
+
+### Custom Configuration
+
+Railpack uses default
+[Caddyfile](https://github.com/railwayapp/railpack/blob/main/core/providers/php/Caddyfile)
+and
+[php.ini](https://github.com/railwayapp/railpack/blob/main/core/providers/php/php.ini)
+configuration files. You can override these by placing your own versions in your
+project root:
+
+- `/Caddyfile` - Custom Caddy server configuration
+- `/php.ini` - Custom PHP configuration
+
+### Startup Process
+
+The application is started with `/start-container.sh`. Railpack picks a
+framework-specific default at build time (vanilla, Laravel, or Symfony) and
+installs it under that path:
+
+- [Vanilla](https://github.com/railwayapp/railpack/blob/main/core/providers/php/start-container.sh)
+- [Laravel](https://github.com/railwayapp/railpack/blob/main/core/providers/php/start-container.laravel.sh)
+  — migrations (disable with `RAILPACK_SKIP_MIGRATIONS`), storage link, optimize
+- [Symfony](https://github.com/railwayapp/railpack/blob/main/core/providers/php/start-container.symfony.sh)
+  — Doctrine migrations when available (disable with
+  `RAILPACK_SKIP_MIGRATIONS`), cache warmup
+
+All variants start FrankenPHP via the Caddyfile configuration.
+
+You can customize the startup process by placing your own `start-container.sh`
+in the project root.
+
+### PHP Extensions
+
+PHP extensions are automatically installed based on:
+
+- Requirements specified in `composer.json` (e.g., `ext-redis`, `ext-pdo_pgsql`)
+- Extensions listed in the `RAILPACK_PHP_EXTENSIONS` environment variable
+
+Example `composer.json` with required extensions:
+
+```json title="composer.json"
+{
+  "require": {
+    "php": ">=8.2",
+    "ext-pgsql": "*",
+    "ext-redis": "*"
+  }
+}
+```
+
+## Apt Packages
+
+Railpack normally normally installs build and deploy apt packages on different images.
+However, PHP uses the FrankenPHP image for both the build and the final image, instead of
+the standard railpack runtime base because mise does not support precompiled PHP binaries natively.
+
+[`buildAptPackages`](/guides/installing-packages#apt) and
+[`deploy.aptPackages`](/guides/installing-packages#apt) are therefore installed
+together on the FrankenPHP image. `...` entries from apt package lists are removed,
+and combined list of build and deploy packages are available in the final deploy image.
+
+Packages added for Composer (`git`, `zip`, `unzip`, and `ca-certificates`) stay installed.
+
+For example:
+
+```json title="railpack.json"
+{
+  "$schema": "https://schema.railpack.com",
+  "buildAptPackages": ["libpng-dev"],
+  "deploy": {
+    "aptPackages": ["jq", "ffmpeg"]
+  }
+}
+```
+
+Will result in `libpng-dev`, `jq`, and `ffmpeg` in the final deploy image.
+
+## Laravel Support
+
+Laravel applications are detected by the presence of an `artisan` file. When
+detected:
+
+- The document root is set to the `/app/public` directory
+- Storage directory permissions are set to be writable
+- Composer dependencies are installed
+- Artisan caches are optimized at build time:
+  - Configuration cache
+  - Event cache
+  - Route cache
+  - View cache
+
+## Symfony Support
+
+Symfony applications are detected when either:
+
+- `composer.json` requires `symfony/framework-bundle`, or
+- Both `bin/console` and `symfony.lock` exist (Symfony Flex projects)
+
+When detected:
+
+- The document root is set to the `/app/public` directory
+- `APP_ENV` is set to `prod` and `APP_DEBUG` to `0`
+- `var/cache` and `var/log` are created and made writable when the container starts
+- On startup, Doctrine migrations run when available (unless
+  `RAILPACK_SKIP_MIGRATIONS` is set) and the production cache is warmed
+
+## Node.js Integration
+
+If a `package.json` file is detected in your PHP project:
+
+- Node.js will be installed
+- NPM dependencies will be installed
+- Build scripts defined in `package.json` will be executed
+- Development dependencies will be pruned in the final image
+
+This is particularly useful for Laravel applications that use frontend
+frameworks like Vue.js or React.
+
+You can see the [node docs](/languages/node) for information on how to configure
+node.
+
+## BuildKit Caching
+
+The PHP provider will cache `/opt/cache/composer` under the cache key `composer`.

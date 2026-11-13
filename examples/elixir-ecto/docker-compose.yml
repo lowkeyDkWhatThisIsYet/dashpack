@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    # marks test services so leaked containers can be cleaned up (see mise clean)
+    labels:
+      com.railpack.integration-test: "true"
+    environment:
+      POSTGRES_DB: friends_db
+      POSTGRES_USER: friends_user
+      POSTGRES_PASSWORD: friends_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U friends_user -d friends_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

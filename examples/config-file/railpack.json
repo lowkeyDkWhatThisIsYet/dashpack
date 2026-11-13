@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "node",
+  "packages": {
+    "python": "latest"
+  },
+  "buildAptPackages": ["lsb-release"],
+  "steps": {
+    "build": {
+      "commands": ["lsb_release -a"],
+      "variables": {
+        "HELLO": "world"
+      }
+    }
+  },
+  "deploy": {
+    "inputs": ["..."],
+    "aptPackages": ["lsb-release"],
+    "startCommand": "python --version && lsb_release -d"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "node-astro-server",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "node init && astro dev",
+    "build": "node init && astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "start": "node init && node dist/server/entry.mjs"
+  },
+  "dependencies": {
+    "@astrojs/node": "^9.1.2",
+    "astro": "^5.4.0"
+  }
+}
