@@ -5,8 +5,12 @@ import Database from "better-sqlite3";
 import { randomBytes } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { getSocialProviders } from "./auth-providers";
 
-export async function createAuthStore(directory: string) {
+export async function createAuthStore(
+  directory: string,
+  socialProviders = getSocialProviders(),
+) {
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const secretPath = path.join(directory, "secret");
   let secret = process.env.BETTER_AUTH_SECRET;
@@ -30,6 +34,7 @@ export async function createAuthStore(directory: string) {
     appName: "Dashpack",
     database,
     secret,
+    socialProviders,
     baseURL: {
       allowedHosts: ["localhost:*", "127.0.0.1:*"],
       protocol: "http",

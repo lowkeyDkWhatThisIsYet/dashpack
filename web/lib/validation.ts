@@ -50,12 +50,29 @@ export function validateDeployment(value: unknown): DeployInput {
 
 // Reject cross-site requests before any operation reaches the local Docker daemon.
 export function assertLocalRequest(request: Request) {
+  assertRequest(request, false);
+}
+
+export function assertAuthRequest(request: Request) {
+  // OAuth returns are cross-site navigations; Better Auth verifies their state cookie.
+  const callback =
+    request.method === "GET" &&
+    /^\/api\/auth\/callback\/(google|github)$/.test(
+      new URL(request.url).pathname,
+    );
+  assertRequest(request, callback);
+}
+
+function assertRequest(request: Request, allowOAuthCallback: boolean) {
   const host = request.headers.get("host") ?? "";
   if (!/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host))
     throw new Error("This dashboard is available on localhost only.");
   const origin = request.headers.get("origin");
   if (origin && origin !== `http://${host}`)
     throw new Error("Cross-origin requests are not allowed.");
-  if (request.headers.get("sec-fetch-site") === "cross-site")
+  if (
+    !allowOAuthCallback &&
+    request.headers.get("sec-fetch-site") === "cross-site"
+  )
     throw new Error("Cross-site requests are not allowed.");
 }

@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assertLocalRequest, validateDeployment } from "./validation";
+import {
+  assertAuthRequest,
+  assertLocalRequest,
+  validateDeployment,
+} from "./validation";
 
 const valid = {
   name: "my-app",
@@ -9,6 +13,34 @@ const valid = {
   healthPath: "/",
   environment: "",
 };
+
+test("only OAuth GET callbacks can return from another site on a local host", () => {
+  const headers = { host: "127.0.0.1:3001", "sec-fetch-site": "cross-site" };
+  for (const provider of ["google", "github"]) {
+    const url = `http://127.0.0.1:3001/api/auth/callback/${provider}?code=test&state=test`;
+    assert.doesNotThrow(() => assertAuthRequest(new Request(url, { headers })));
+    assert.throws(() =>
+      assertAuthRequest(new Request(url, { method: "POST", headers })),
+    );
+    assert.throws(() =>
+      assertAuthRequest(
+        new Request(url, { headers: { ...headers, host: "evil.test" } }),
+      ),
+    );
+  }
+  for (const route of [
+    "sign-in/social",
+    "sign-out",
+    "callback/unknown",
+    "callback/google/extra",
+  ]) {
+    assert.throws(() =>
+      assertAuthRequest(
+        new Request(`http://127.0.0.1:3001/api/auth/${route}`, { headers }),
+      ),
+    );
+  }
+});
 
 test("accepts local projects and public GitHub URLs", () => {
   assert.equal(validateDeployment(valid).source, valid.source);

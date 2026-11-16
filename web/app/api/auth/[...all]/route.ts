@@ -1,9 +1,9 @@
 import { getAuthStore } from "@/lib/auth";
-import { assertLocalRequest } from "@/lib/validation";
+import { assertAuthRequest } from "@/lib/validation";
 
 async function handle(request: Request) {
   try {
-    assertLocalRequest(request);
+    assertAuthRequest(request);
   } catch (error) {
     return Response.json({ error: (error as Error).message }, { status: 403 });
   }

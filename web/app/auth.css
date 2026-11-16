@@ -57,6 +57,36 @@
   color: #657c53;
   margin-bottom: 19px;
 }
+.auth-social-buttons {
+  display: grid;
+  gap: 10px;
+}
+.auth-social-buttons button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #dfe7d4;
+  border-radius: 7px;
+  background: #fff;
+  color: #456039;
+  font: inherit;
+  cursor: pointer;
+}
+.auth-social-buttons button:hover {
+  background: #f0f4eb;
+}
+.auth-social-buttons button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.auth-divider {
+  text-align: center;
+  font-size: 11px;
+  color: #718262;
+  margin: 20px 0;
+}
 .auth-field > input,
 .password-input {
   display: block;
